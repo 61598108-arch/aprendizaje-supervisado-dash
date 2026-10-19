@@ -1,2 +1,216 @@
-<h1>Regresión lineal simple y múltiple</h1>
-<a href="../index.html">← Volver al inicio</a>
+<style>
+  .interpretacion {
+    margin: 14px 0 22px;
+    padding: 16px 20px;
+    border-left: 4px solid #2563eb;
+    border-radius: 0 10px 10px 0;
+    background: #eff6ff;
+    color: #243753;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .interpretacion strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #174a91;
+  }
+
+  body[data-view="graphs"] .interpretacion[data-grafico="false"] {
+    display: none;
+  }
+
+  @media print {
+    .interpretacion {
+      break-inside: avoid;
+      background: white;
+    }
+  }
+</style>
+
+<script>
+(function () {
+  const explicaciones = [
+    // 1. Descripción inicial
+    "La base contiene 200 observaciones y 5 variables originales. El rendimiento es la variable que se busca explicar; las horas de estudio, las horas de sueño, la ubicación y la tutoría son posibles predictores.",
+
+    // 2. Tipos de datos
+    "Las horas de estudio, las horas de sueño y el rendimiento son variables numéricas. La ubicación y la tutoría son categóricas, por lo que necesitan una codificación para incorporarse al modelo.",
+
+    // 3. Datos faltantes
+    "Todas las variables muestran cero datos faltantes. Según esta revisión, no es necesario imputar valores ausentes en estas columnas.",
+
+    // 4. Estadísticos descriptivos
+    "El rendimiento tiene una media de 196.78 y una desviación estándar de 32.42. Sus valores van de 116.22 a 293.78. Estos estadísticos describen el centro y la dispersión de los datos; no demuestran por sí solos que exista una distribución normal.",
+
+    // 5. Histograma de rendimiento
+    "Las barras muestran cuántas observaciones pertenecen a cada intervalo de rendimiento. La curva suavizada ayuda a observar su forma general. Este gráfico permite explorar concentración, asimetría y posibles valores extremos, pero no confirma por sí solo la normalidad.",
+
+    // 6. Histogramas numéricos
+    "Cada histograma resume la distribución de una variable numérica. Permite identificar los intervalos más frecuentes y comparar la dispersión. Los ejes tienen distintas escalas, por lo que deben interpretarse individualmente.",
+
+    // 7. Distribuciones con curvas
+    "Las barras representan frecuencias y las curvas muestran una estimación suavizada de la distribución. Se utilizan para explorar la forma de las variables antes del modelado. En regresión, el supuesto de normalidad se refiere a los errores, no a que todos los predictores sean normales.",
+
+    // 8. Mapa de correlaciones
+    "El mapa resume las asociaciones lineales entre las variables numéricas. Los valores cercanos a 1 indican asociación positiva fuerte; los cercanos a −1, asociación negativa fuerte; y los cercanos a 0, asociación lineal débil. Correlación no implica causalidad.",
+
+    // 9. Correlación con rendimiento
+    "Las horas de estudio presentan una correlación positiva de 0.899 con el rendimiento, mientras que las horas de sueño tienen una correlación de 0.321. En estos datos, la asociación lineal con las horas de estudio es mayor.",
+
+    // 10. Diagramas de dispersión
+    "Cada punto representa una observación y la línea roja resume la tendencia lineal entre el predictor y el rendimiento. Una nube más próxima a la recta indica una relación lineal más marcada. Estas rectas describen relaciones individuales, sin controlar los demás predictores.",
+
+    // 11. Diagramas de caja
+    "Las cajas permiten comparar el rendimiento según ubicación y tutoría. La línea interior representa la mediana y la caja contiene el 50 % central de los datos. Las diferencias visuales entre grupos deben complementarse con el análisis estadístico.",
+
+    // 12. Variables codificadas
+    "Después de codificar las categorías, se obtienen cinco predictores. Las variables indicadoras representan las categorías Suburban, Urban y Yes, comparadas con las categorías de referencia omitidas.",
+
+    // 13. División de datos
+    "Se utilizan 160 observaciones para entrenar y 40 para evaluar: una división de 80 % y 20 %. El conjunto de prueba permite medir el desempeño sobre observaciones que no se usaron para ajustar el modelo.",
+
+    // 14. Estandarización
+    "La tabla presenta los predictores estandarizados. Los valores negativos indican posiciones inferiores a la media de entrenamiento y los positivos, superiores. Estos números ya no están expresados en las unidades originales.",
+
+    // 15. Modelo base
+    "El modelo con todos los predictores obtiene R² de entrenamiento de 0.8989, R² de prueba de 0.8655 y RMSE de 11.9469. Sirve como referencia para evaluar si la selección de variables mejora el desempeño.",
+
+    // 16. Pearson
+    "Con el umbral |r| ≥ 0.2 se seleccionan horas de estudio y horas de sueño. El modelo obtiene R² de prueba de 0.8624 y RMSE de 12.0846. Usa menos predictores, aunque su desempeño de prueba es ligeramente inferior al modelo completo.",
+
+    // 17. Gráfico Pearson
+    "La altura de cada barra representa la correlación absoluta con el rendimiento en entrenamiento. La línea roja marca el umbral de 0.2. Las variables que lo alcanzan se seleccionan mediante este criterio individual.",
+
+    // 18. F-test
+    "El F-test ordena los predictores según su asociación lineal individual con la respuesta. Se seleccionan horas de estudio, horas de sueño y tutoría. Elegir las tres primeras no significa que las tres tengan un p-valor inferior a 0.05.",
+
+    // 19. Información mutua
+    "La información mutua permite detectar dependencia, incluso no lineal. El criterio selecciona horas de estudio, horas de sueño y tutoría. Sus puntuaciones no son porcentajes de variación explicada ni indican la dirección de la asociación.",
+
+    // 20. VIF
+    "Todos los VIF finales son inferiores a 10, por lo que este procedimiento conserva los cinco predictores. Bajo el umbral utilizado, no se detecta multicolinealidad elevada. Esto no equivale a afirmar que las variables sean independientes.",
+
+    // 21. RFE
+    "RFE elimina predictores de forma recursiva y conserva horas de estudio, horas de sueño y tutoría. El modelo resultante obtiene R² de prueba de 0.8570 y RMSE de 12.3202.",
+
+    // 22. RFECV
+    "RFECV combina la eliminación recursiva con validación cruzada. En esta ejecución, selecciona los cinco predictores, de modo que no reduce el conjunto original de variables codificadas.",
+
+    // 23. Gráfico RFECV
+    "La curva muestra cómo cambia el R² de validación cruzada al variar el número de predictores. La línea vertical señala la cantidad seleccionada por el procedimiento: cinco variables.",
+
+    // 24. Forward
+    "Esta salida de selección hacia adelante conserva horas de estudio y horas de sueño. Obtiene R² de prueba de 0.8624 y RMSE de 12.0846. Debe distinguirse de la secuencia basada en AIC que aparece a continuación.",
+
+    // 25. Secuencia AIC
+    "La secuencia muestra la incorporación de predictores y la disminución del AIC desde 1297.999 hasta 1209.469. Entre modelos comparables ajustados a los mismos datos, un AIC menor indica un mejor equilibrio entre ajuste y complejidad.",
+
+    // 26. Lista AIC
+    "Esta selección incluye horas de estudio, horas de sueño, tutoría y ubicación urbana, además del intercepto. El intercepto representa la constante del modelo y no es una variable explicativa adicional.",
+
+    // 27. Backward
+    "Esta salida de selección hacia atrás conserva tres predictores y obtiene R² de prueba de 0.8570. Corresponde a un procedimiento distinto de la eliminación basada en AIC mostrada después.",
+
+    // 28. Eliminación AIC
+    "Al eliminar ubicación suburbana, el AIC disminuye de 1210.142 a 1209.469. Bajo este criterio, se prefiere el modelo reducido entre las alternativas mostradas.",
+
+    // 29. Lista final AIC
+    "El conjunto seleccionado por este procedimiento contiene cuatro predictores y una constante. La ubicación urbana y la tutoría se interpretan respecto a sus categorías de referencia, manteniendo constantes los demás predictores.",
+
+    // 30. Resumen OLS
+    "En el modelo OLS, una unidad adicional de horas de estudio se asocia con 3.0359 unidades adicionales de rendimiento, manteniendo constantes los demás predictores. Para horas de sueño, el coeficiente es 1.4693; para tutoría Yes, 10.4966; y para ubicación Urban, 5.5477 frente a sus referencias. El R² de 0.898 corresponde al ajuste sobre los datos usados para estimar este modelo.",
+
+    // 31. Lista adicional
+    "Esta salida enumera horas de estudio y horas de sueño. Es únicamente una lista de variables; por sí sola no contiene una ecuación ajustada ni indicadores de desempeño.",
+
+    // 32. LASSO
+    "LASSO utiliza una penalización cuyo alpha seleccionado es 0.109415. En esta ejecución ningún coeficiente queda en cero, por lo que conserva los cinco predictores. Obtiene R² de prueba de 0.8660 y RMSE de 11.9280.",
+
+    // 33. Gráfico LASSO
+    "Las barras muestran los coeficientes de LASSO sobre los predictores estandarizados. Una magnitud mayor representa un efecto estimado mayor en esa escala. No deben interpretarse directamente como cambios por una unidad en la escala original.",
+
+    // 34. Encabezado Ridge
+    "Ridge reduce la magnitud de los coeficientes mediante una penalización. Habitualmente conserva los predictores, a diferencia de LASSO, que puede llevar algunos coeficientes exactamente a cero.",
+
+    // 35. Resultados Ridge
+    "Ridge selecciona alpha de 1.4175 y obtiene R² de prueba de 0.8645 y RMSE de 11.9944. En esta evaluación, su desempeño es ligeramente inferior al de LASSO.",
+
+    // 36. Selección por p-valor
+    "El procedimiento elimina ubicación suburbana porque su p-valor es 0.2593, superior a 0.05. Conserva cuatro predictores y obtiene R² de prueba de 0.8697 y RMSE de 11.7614. La selección depende del modelo, de la muestra y del umbral utilizado.",
+
+    // 37. Tabla comparativa
+    "La tabla compara los métodos según ajuste, error y número de variables. Un R² de prueba mayor y un RMSE menor indican mejor desempeño predictivo en esta partición. La selección por p-valor encabeza el R² de prueba, mientras que otros métodos presentan un CV-R² ligeramente mayor.",
+
+    // 38. Gráfico comparativo
+    "El panel de R² favorece los valores mayores y el panel de RMSE favorece los menores. En la evaluación de prueba mostrada, el método por p-valor obtiene los mejores valores de ambas métricas.",
+
+    // 39. Mejor método
+    "El archivo identifica como mejor método de esta comparación la selección por p-valor con cuatro predictores. Su R² de prueba es 0.8697, equivalente a un 86.97 % de variación explicada respecto a la referencia de la media del conjunto de prueba. Este resultado no garantiza el mismo desempeño en nuevas poblaciones.",
+
+    // 40. Error de instalación
+    "Este mensaje corresponde a una restricción del entorno al instalar paquetes. No es un resultado estadístico y no debe interpretarse como una medida de calidad del modelo.",
+
+    // 41. Versión
+    "Se registra la versión 1.8.0 de scikit-learn. Documentar la versión ayuda a reproducir el análisis, porque el comportamiento del software puede variar entre versiones.",
+
+    // 42. Datos Random Forest
+    "Esta tabla pertenece a la sección final de Random Forest. Presenta el rendimiento y los predictores, incluidas las categorías codificadas mediante variables indicadoras.",
+
+    // 43. Estructura Random Forest
+    "La tabla transformada contiene 200 observaciones y seis columnas: la respuesta y cinco predictores. Todas presentan 200 valores no nulos en esta revisión.",
+
+    // 44. None
+    "None es un valor de retorno de Python. En este contexto no representa un dato faltante de la base ni un indicador de desempeño.",
+
+    // 45. División Random Forest
+    "Esta sección utiliza 150 observaciones de entrenamiento y 50 de prueba: una división de 75 % y 25 %. Como difiere de la división anterior, sus métricas no permiten una comparación directa y controlada con las de regresión.",
+
+    // 46. Configuración Random Forest
+    "El modelo utiliza 10 árboles y considera un predictor candidato por división. random_state=123 fija la semilla y n_jobs=-1 permite utilizar los procesadores disponibles. Estos parámetros describen la configuración, no su calidad predictiva.",
+
+    // 47. RMSE Random Forest
+    "El RMSE de prueba es 20.39580801512924, expresado en las mismas unidades que el rendimiento. Penaliza especialmente los errores grandes. Para compararlo con otro modelo se necesitan las mismas observaciones de prueba.",
+
+    // 48. Encabezado importancia
+    "La siguiente tabla ordena los predictores según su importancia en este Random Forest. Se trata de una medida interna del modelo, no de una prueba de causalidad ni de significancia estadística.",
+
+    // 49. Importancias
+    "Horas de estudio tiene la mayor importancia (0.646341), seguida de horas de sueño (0.257712). Tutoría y las categorías de ubicación tienen importancias menores. Estos valores reflejan la contribución relativa a la reducción de impureza y no el porcentaje de rendimiento explicado por cada variable."
+  ];
+
+  const salidas = document.querySelectorAll(
+    ".jp-OutputArea-output"
+  );
+
+  salidas.forEach(function (salida, indice) {
+    if (!explicaciones[indice]) return;
+
+    // Evita duplicar explicaciones si se ejecuta otra vez.
+    if (
+      salida.nextElementSibling &&
+      salida.nextElementSibling.classList.contains("interpretacion")
+    ) {
+      return;
+    }
+
+    const caja = document.createElement("aside");
+    caja.className = "interpretacion";
+    caja.dataset.grafico = salida.querySelector("img")
+      ? "true"
+      : "false";
+
+    const titulo = document.createElement("strong");
+    titulo.textContent = salida.querySelector("img")
+      ? "¿Cómo interpretar este gráfico?"
+      : "Interpretación del resultado";
+
+    const texto = document.createElement("span");
+    texto.textContent = explicaciones[indice];
+
+    caja.append(titulo, texto);
+    salida.insertAdjacentElement("afterend", caja);
+  });
+})();
+</script>
